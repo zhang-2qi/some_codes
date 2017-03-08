@@ -1,0 +1,516 @@
+#include<iostream>
+#include<vector>
+#include<cstdio>
+#include<algorithm>
+#pragma warning(disable:4018)
+using namespace std;
+string alpha = "ABCDEFGHIJ";
+class total_table //总的大表，记录整体信息
+{
+public:
+    int  total_number;
+    int length;
+    vector<char*> total_bincover; //所有存放二进制数
+    vector<int*> total_cover;//存放所有十进制覆盖
+    vector<int> total_num_cover;//存放所有十进制位数
+};
+void dextobin(vector<char>* bin_cover,int number,int length)
+{
+    int count=1;
+    int temp;
+    while(number/2!=0)
+    {  
+        temp=number%2;
+        (*bin_cover).push_back(temp+'0');
+        number = number/2;
+        count++;
+    }
+    (*bin_cover).push_back(number+'0');
+    count=length-count;
+    for(int i=count;i>0;i--)
+        (*bin_cover).push_back('0');
+    reverse((*bin_cover).begin(),(*bin_cover).end());
+/*	for(int i=0;i<(*bin_cover).size();i++)
+   { cout<<(*bin_cover)[i]<<' ';
+    }
+    cout<<endl;
+*/
+}
+class item
+{  
+public:
+    int length;
+    vector<int> cover;
+    vector<char> bin_cover;//二进制
+    vector<int> storage_term;//这个是存本原项中覆盖的项
+    int is_none_term; //判断是不是无关项
+    int is_conbine;//判断是否被合并
+    int is_benzhi;
+	int final_benzhi_choose;
+    int is_benyuan;
+    int num_cover;
+    void chushi(int length,vector<int>* old_cover);
+    void chushi(int length,int number,int flag);
+};
+void item::chushi(int mylength,int number,int flag)
+{  
+    cover.push_back(number);
+    dextobin(&bin_cover,number,mylength);
+    length=mylength;
+    is_none_term = flag;
+    is_conbine = 0;
+    is_benzhi=0;
+    is_benyuan=0;
+	final_benzhi_choose=0;
+    num_cover=1;
+}
+int total_length(int temp2)  //刚开始算字符串的总长度
+{ 
+    int length=1;
+    while((temp2/2)>0)
+    {
+        length++;
+        temp2/=2;
+    }
+    return length;
+}
+void push(item &a,total_table* table)  //将一个本源蕴含项直接加到总表中
+{
+    int l1=(*table).length;
+    int l2=a.cover.size();
+    char* a1 = new char[l1];
+    int* a2 = new int[l2];
+    for(int i=0;i<l1;i++)
+        a1[i] = a.bin_cover[i];
+    for(int i=0;i<l2;i++)
+        a2[i]= a.cover[i];
+    (*table).total_bincover.push_back(a1);
+    (*table).total_cover.push_back(a2);
+    (*table).total_number++;
+    (*table).total_num_cover.push_back(l2);
+}
+int hebing(item a,item b,total_table* table,int *flaggg) //两个字符串合并
+{
+    int flag=0;
+    total_table my_table = (*table);
+    for(int i=0;i<my_table.length;i++)
+    {  
+        if(a.bin_cover[i]!=b.bin_cover[i])
+            flag++;
+    }
+    if(flag==1)
+    {  
+        char* op =new char[my_table.length];
+    //  a.is_conbine = 1;
+    //b.is_conbine = 1;
+      int cum = a.cover.size()+b.cover.size();
+      (*table).total_num_cover.push_back(cum);
+      int* oop =new int[cum];
+      for(int i=0;i<cum;i++)
+      {  
+          if(i<a.cover.size())
+              oop[i] =a.cover[i];
+          else
+              oop[i] =b.cover[i-a.cover.size()];
+      }
+     for(int i=0;i<my_table.length;i++)
+    {  
+        if(a.bin_cover[i]!=b.bin_cover[i]) //+ *
+            op[i] = '*';
+        else
+            op[i] = a.bin_cover[i];
+    }
+     int m=1;
+     for(int i=0;i<my_table.total_number;i++)
+     { 
+         if(strcmp(op,my_table.total_bincover[i])==0)
+           {  m=0;
+              break;
+         }
+//		 for(int j=0;j<my_table.length;j++)
+//			 if(op[j]!=my_table.total_bincover[i][j])
+//				 m=1;
+     }
+     if(m)  //判断是否重复
+     {
+     (*table).total_bincover.push_back(op);
+    // cout<<strlen(op)<<"opopopopoopop"<<endl;
+    // cout<<strlen((*table).total_bincover.end())<<"opopopopoopop"<<endl;
+  //   for(int i=0;i<my_table.length;i++)
+  //       cout<<op[i]<<" ";
+ //       cout<<"la"<<endl;
+     (*table).total_cover.push_back(oop);
+     (*table).total_number++;
+     *flaggg=1;
+     }
+     return 1;
+    }
+    return 0;
+}
+void decoder(item* a,total_table* bb,int i) //将总表中的数据再还到新的item中
+{  
+    
+    total_table b =*bb;
+    (*a).length = b.length;
+    for(int j=0;j<(*a).length;j++)
+        (*a).bin_cover.push_back(b.total_bincover[i][j]);
+    for(int j=0;j<b.total_num_cover[i];j++)
+        (*a).cover.push_back(b.total_cover[i][j]);
+    (*a).is_conbine=0;
+    (*a).is_benzhi=0;
+    (*a).is_benyuan=0;
+    (*a).num_cover=b.total_num_cover[i];
+	(*a).final_benzhi_choose=0;
+}
+void Print(total_table a)//打印总表
+{  
+    for(int i=0;i<a.total_number;i++)
+    {  
+        for(int j=0;j<a.length;j++)
+            cout<<a.total_bincover[i][j]<<" ";
+        cout<<"lala";
+        for(int j=0;j<a.total_num_cover[i];j++)
+            cout<<a.total_cover[i][j]<<" ";
+        cout<<endl;
+    }
+}
+bool notincover(int a,vector<int> &b)//看看最小项是否在本质本原里
+{
+    for(int i=0;i<b.size();i++)
+    {
+        if(a==b[i])
+            return 0;
+    }
+    return 1;
+}
+bool baohan(item &a,item &b)
+{
+    int count=0;
+    for(int i=0;i<a.is_benyuan;i++)
+    {
+        for(int j=0;j<b.is_benyuan;j++)
+            if(a.storage_term[i]==b.storage_term[j])
+                count++;
+    }
+    if(count==a.is_benyuan)
+        return 1;
+    else
+        return 0;
+}
+
+int bijiao(item a,item b)//a<b返回0
+{
+for(int i=0;i<a.length;i++)
+	{
+		if(a.bin_cover[i]==b.bin_cover[i])
+			;
+		else
+		{
+			if(a.bin_cover[i]=='*')
+				return 0;//小于是0
+			else  if(b.bin_cover[i]=='*')
+				return 1;
+			else if(a.bin_cover[i]>b.bin_cover[i])
+				return 1;
+			else
+				return 0;
+		}		
+	}
+	return 1;
+}
+
+void itemPrint(vector<item> &benzhi)
+{
+		for(int i=0;i<benzhi.size();i++)
+                {	for(int j=0;j<benzhi[i].length;j++)
+                        cout<<benzhi[i].bin_cover[j]<<" ";
+                cout<<endl;
+                }
+}
+void Print_item(item& a,int flag,int length,int flag2)
+{
+	for(int i=0;i<a.length;i++)
+	{	if(a.bin_cover[i]=='*')
+	     ;
+	else 
+	{
+		cout<<alpha[i];
+		if(a.bin_cover[i]=='0')
+			cout<<'\'';
+	}
+	}
+	if((flag==length-1))
+		;
+	else
+		cout<<"+";
+}
+int main()
+{  
+
+    int N;
+    cin>>N;
+	int zhangyunqi=1;
+    while(N--)
+    {  
+        int num_min_item,num_none_term;
+        cin>>num_min_item>>num_none_term;
+		if(num_min_item+num_none_term==0)
+		{ cout<<endl;continue;}
+        item* min_term = new item[num_min_item];
+        item* none_term = new item[num_none_term];
+        int* term1 = new int[num_min_item]; //存有最小项数字
+        int* term2 = new int[num_none_term];//存有无关项数字
+        int temp1,temp2=0;
+        for(int i=0;i<num_min_item;i++)
+        {  
+            cin>>temp1;
+            term1[i] = temp1;
+            if(temp2<=temp1)
+                temp2=temp1;
+        }
+        for(int i=0;i<num_none_term;i++)
+        {  
+            cin>>temp1;
+            term2[i] = temp1;
+            if(temp2<=temp1)
+                temp2=temp1;
+        }
+        int length =  total_length(temp2);
+		 if(num_min_item+num_none_term==int(pow(2,length)))
+		{	 if(num_min_item>0)
+		cout<<1<<endl;
+		else
+			cout<<0<<endl;
+		 continue;
+		 }
+        int total_num=num_min_item+num_none_term;
+        item* total_term = new item[total_num];
+        total_table to_table;
+        to_table.length = length;
+        to_table.total_number=0;
+        for(int i=0;i<num_min_item;i++)
+        {
+            total_term[i].chushi(length,term1[i],0);
+        }
+        for(int i=0;i<num_none_term;i++)
+        {  
+            //none_term[i].chushi(length,term2[i],1);
+            total_term[i+num_min_item].chushi(length,term2[i],1);
+        }
+        int flaggg =1;
+        while(flaggg)
+        {
+            flaggg=0;
+            to_table.total_cover.clear();
+            to_table.total_number=0;
+            to_table.total_num_cover.clear();
+            to_table.total_bincover.clear();
+            for(int i=0;i<total_num;i++)
+                for(int j=i;j<total_num;j++)
+                { 
+                    int isconbine=hebing(total_term[i],total_term[j],&to_table,&flaggg); //合并两个表
+                    if(isconbine) 
+                    {
+                        total_term[i].is_conbine=1;
+                        total_term[j].is_conbine=1;
+                    }
+
+                }
+            for(int i=0;i<total_num;i++)
+            {
+                if(!total_term[i].is_conbine)
+                    push(total_term[i],&to_table);
+            }
+            total_num=to_table.total_number;
+            total_term = new item[total_num];
+            for(int i=0;i<total_num;i++)
+                decoder(&total_term[i],&to_table,i);
+      //      cout<<"lalalallallalla"<<endl;
+        }
+      //  cout<<"******************************"<<endl;
+       // Print(to_table);
+//	vector<string> bin_cover;
+        int flag1=0;
+        int flag2=1;
+        item temp3;
+        int p=0;
+      /*
+        for(int i=0;i<total_num;i++)
+        {
+            for(int j=0;j<to_table.length;j++)
+                cout<<total_term[i].bin_cover[j]<<" ";
+       cout<<"la"<<endl;
+        }
+
+        cout<<"))))))))))))))"<<endl;
+		*/
+       for(int i=0;i<total_num-1;i++)  //这段查重是败笔，哎
+        { 
+            
+            for(int p=i+1;p<total_num;p++)
+            { 
+                flag1=0;
+                for(int k=0;k<to_table.length;k++)
+                    if(to_table.total_bincover[i][k]==to_table.total_bincover[p][k])
+                        flag1++;
+            if(flag1==to_table.length)
+            {
+                total_term[p].is_conbine=1;
+            }
+            }
+        }
+            to_table.total_cover.clear();
+            to_table.total_number=0;
+            to_table.total_num_cover.clear();
+            to_table.total_bincover.clear();
+       for(int i=0;i<total_num;i++)
+            if(!total_term[i].is_conbine)
+            push(total_term[i],&to_table);
+  //       Print(to_table);
+   //       cout<<"************************************"<<endl;
+       total_num=to_table.total_number;
+           item*  final_term = new item[total_num];
+            for(int i=0;i<total_num;i++)
+                decoder(&final_term[i],&to_table,i);
+            int* final_min_term = new int[num_min_item];
+            for(int i=0;i<num_min_item;i++) //计算哪些项只出现过一次
+            {	final_min_term[i]=0;
+            for(int j=0;j<total_num;j++)
+            {  
+                for(int k=0;k<to_table.total_num_cover[j];k++)
+                    if(term1[i]==to_table.total_cover[j][k])
+                        final_min_term[i]++;
+            }
+            }
+            vector<item> benzhi;
+            vector<item> benyuan;
+            for(int i=0;i<num_min_item;i++)//查找本质本原蕴含项
+            {
+                if(final_min_term[i]==1)
+                {  
+                    
+                    for(int j=0;j<total_num;j++)
+            {  
+                int count=0;
+                for(int k=0;k<to_table.total_num_cover[j];k++)
+                    if(term1[i]==to_table.total_cover[j][k])
+                        count++;
+				if(count==1&&!(final_term[j].final_benzhi_choose))
+                {
+                    final_term[j].is_benzhi=1;
+                    benzhi.push_back(final_term[j]);
+					final_term[j].final_benzhi_choose=1;
+                }
+            }
+                }
+                
+            }
+    //       benzhi.erase(unique(benzhi.begin(), benzhi.end()), benzhi.end());
+            for(int i=0;i<total_num;i++)
+            {
+                if(!final_term[i].is_benzhi)
+                    benyuan.push_back(final_term[i]);
+            }
+            vector<int> final_cover;
+            for(int i=0;i<total_num;i++) //final_cover中存的是本质本原项覆盖的
+            {
+                if(final_term[i].is_benzhi)
+                {
+                    for(int j=0;j<final_term[i].num_cover;j++)
+                    {
+                        final_cover.push_back(final_term[i].cover[j]);
+                    }
+                }
+            }
+            final_cover.erase(unique(final_cover.begin(), final_cover.end()), final_cover.end());
+            vector<int> left;//left中存的是剩下的
+            for(int i=0;i<num_min_item;i++)
+            {
+                if(notincover(term1[i],final_cover))
+                    left.push_back(term1[i]);
+            }
+            int mycount = 0;
+                for(int j=0;j<benyuan.size();j++)
+                  {
+                      mycount=0;
+                      benyuan[j].storage_term.clear();
+                      for(int k=0;k<benyuan[j].num_cover;k++)
+                      {
+                          for(int i=0;i<left.size();i++)
+                          {
+                              if(left[i]==benyuan[j].cover[k])
+                                  {   
+                                      mycount++;
+                                      benyuan[j].is_benyuan=mycount;
+                                      benyuan[j].storage_term.push_back(left[i]);
+                                     left[i]=-1;
+                              }
+                          }
+                      }
+                     if(mycount==left.size())
+                          break;
+                }
+                vector<item> false_final_benyuan;
+                vector<item> final_benyuan;//选上的重复的本原蕴含项
+                for(int i=0;i<benyuan.size();i++)
+                {
+                    if(benyuan[i].is_benyuan)
+                        false_final_benyuan.push_back(benyuan[i]);
+                }
+                //筛选出真正的本原蕴含项
+                for(int i=0;i<int(false_final_benyuan.size()-1);i++)
+                {
+                    for(int j=0;j<false_final_benyuan.size();j++)
+                        if(false_final_benyuan[i].is_benyuan<=false_final_benyuan[j].is_benyuan&&i!=j)
+                            if(baohan(false_final_benyuan[i],false_final_benyuan[j]))
+                                false_final_benyuan[i].is_benyuan=0;
+                }
+                for(int i=0;i<false_final_benyuan.size();i++)
+                {
+                    if(false_final_benyuan[i].is_benyuan)
+                        final_benyuan.push_back(benyuan[i]);
+                }
+                //现在开始输出了真难
+/*				for(int i=0;i<benzhi.size();i++)
+                {	for(int j=0;j<benzhi[i].length;j++)
+                        cout<<benzhi[i].bin_cover[j]<<" ";
+                cout<<endl;
+                }
+            cout<<"非本质在下面"<<endl;
+                for(int i=0;i<final_benyuan.size();i++)
+                {	for(int j=0;j<final_benyuan[i].length;j++)
+                        cout<<final_benyuan[i].bin_cover[j]<<" ";
+                cout<<endl;
+                }
+*/
+				sort(benzhi.begin(),benzhi.end(),bijiao);
+	/*			item  temp;
+				for(int i=0;i<benzhi.size()-1;i++)
+					for(int j=i+1;j<benzhi.size();j++)
+				{	if(bijiao(benzhi[i],benzhi[j]))
+				       ;
+				    else
+					{
+						temp=benzhi[i];
+						benzhi[i]=benzhi[j];
+						benzhi[j]=temp;
+					}
+					}*/
+			//	itemPrint(benzhi);
+				if(zhangyunqi==1)
+				{
+					cout<<"张蕴琪"<<"  2015011229"<<endl;
+					zhangyunqi=0;
+				}
+				for(int i=0;i<benzhi.size();i++)
+				  Print_item(benzhi[i],i,benzhi.size(),1);
+				sort(final_benyuan.begin(),final_benyuan.end(),bijiao);
+				if(final_benyuan.size())
+					cout<<"+";
+				for(int i=0;i<final_benyuan.size();i++)
+					Print_item(final_benyuan[i],i,final_benyuan.size(),0);
+				cout<<endl;
+
+}
+
+}
