@@ -334,7 +334,7 @@ int main()
         int flag2=1;
         item temp3;
         int p=0;
-      /*
+  /*    
         for(int i=0;i<total_num;i++)
         {
             for(int j=0;j<to_table.length;j++)
@@ -343,7 +343,7 @@ int main()
         }
 
         cout<<"))))))))))))))"<<endl;
-		*/
+	*/	
        for(int i=0;i<total_num-1;i++)  //这段查重是败笔，哎
         { 
             
@@ -366,8 +366,8 @@ int main()
        for(int i=0;i<total_num;i++)
             if(!total_term[i].is_conbine)
             push(total_term[i],&to_table);
-  //       Print(to_table);
-   //       cout<<"************************************"<<endl;
+ //     Print(to_table);
+ //        cout<<"************************************"<<endl;
        total_num=to_table.total_number;
            item*  final_term = new item[total_num];
             for(int i=0;i<total_num;i++)
@@ -468,7 +468,7 @@ int main()
                 for(int i=0;i<false_final_benyuan.size();i++)
                 {
                     if(false_final_benyuan[i].is_benyuan)
-                        final_benyuan.push_back(benyuan[i]);
+                        final_benyuan.push_back(false_final_benyuan[i]);
                 }
                 //现在开始输出了真难
 /*				for(int i=0;i<benzhi.size();i++)
@@ -512,5 +512,5 @@ int main()
 				cout<<endl;
 
 }
-
+//检验位
 }
